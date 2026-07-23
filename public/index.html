@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>냉장고 레시피 추천</title>
+<style>
+  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 16px; margin-top: 32px; }
+  #dropzone {
+    border: 2px dashed #bbb; border-radius: 8px; padding: 32px 16px;
+    text-align: center; cursor: pointer; color: #666;
+  }
+  #dropzone.dragover { border-color: #4a7dff; background: #f0f4ff; }
+  #preview { max-width: 100%; margin-top: 16px; border-radius: 8px; display: none; }
+  button {
+    margin-top: 16px; padding: 10px 20px; font-size: 15px; border: none;
+    border-radius: 6px; background: #4a7dff; color: white; cursor: pointer;
+  }
+  button:disabled { background: #aac; cursor: not-allowed; }
+  #status { margin-top: 12px; color: #666; font-size: 14px; }
+  #result { margin-top: 16px; }
+  #result ul { padding-left: 20px; }
+  .error { color: #c0392b; }
+
+  #ingredientSection { display: none; }
+  #chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    display: flex; align-items: center; gap: 6px; background: #eef1f7;
+    border-radius: 16px; padding: 6px 12px; font-size: 14px;
+  }
+  .chip button {
+    margin: 0; padding: 0; width: 18px; height: 18px; line-height: 18px;
+    border-radius: 50%; background: #ccc; color: white; font-size: 12px;
+  }
+  #addIngredientRow { display: flex; gap: 8px; margin-top: 12px; }
+  #addIngredientInput { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  #addIngredientBtn { margin-top: 0; padding: 8px 14px; }
+
+  .recipe-card { margin-top: 12px; padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; }
+  .recipe-card h3 { margin: 0 0 8px; font-size: 17px; }
+  .recipe-meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .recipe-card .tag-missing { color: #c0392b; }
+  .recipe-card .card-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .recipe-card .card-actions button { margin-top: 0; }
+  .btn-secondary { background: #e0e0e0 !important; color: #333 !important; }
+  .btn-danger { background: #f0d0d0 !important; color: #a02020 !important; }
+
+  #profileBar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: #f5f6fa; border-radius: 8px; font-size: 14px; margin-bottom: 8px;
+  }
+  #profileForm { display: flex; gap: 8px; }
+  #profileForm input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  #profileForm button { margin-top: 0; padding: 8px 14px; }
+  #myRecipesBtn { margin-top: 0; padding: 6px 12px; font-size: 13px; }
+  #myRecipesSection { display: none; margin-top: 16px; }
+</style>
+</head>
+<body>
+  <h1>🧊 냉장고 사진으로 레시피 추천받기</h1>
+
+  <div id="profileBar" style="display:none;">
+    <span id="profileGreeting"></span>
+    <button id="myRecipesBtn">내 레시피 보기</button>
+  </div>
+  <div id="profileForm">
+    <input type="text" id="nicknameInput" placeholder="닉네임을 입력하고 프로필을 만드세요" maxlength="30" />
+    <button id="createProfileBtn">시작하기</button>
+  </div>
+  <div id="profileStatus" style="color:#c0392b; font-size:13px;"></div>
+
+  <div id="myRecipesSection">
+    <h2>내가 저장한 레시피</h2>
+    <div id="myRecipesList"></div>
+  </div>
+
+  <div id="dropzone">
+    사진을 드래그하거나 클릭해서 선택하세요<br />(jpg/png/heic/avif, 5MB 이하)
+    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/heic,image/heif,image/avif,.heic,.heif,.avif" hidden />
+  </div>
+
+  <img id="preview" alt="미리보기" />
+  <p id="previewFallback" style="display:none; color:#666; font-size:14px;"></p>
+  <button id="recognizeBtn" disabled>식재료 인식하기</button>
+
+  <div id="status"></div>
+
+  <div id="ingredientSection">
+    <h2>인식된 식재료 (필요하면 수정하세요)</h2>
+    <div id="chips"></div>
+    <div id="addIngredientRow">
+      <input type="text" id="addIngredientInput" placeholder="재료 추가 (예: 대파)" />
+      <button id="addIngredientBtn">추가</button>
+    </div>
+    <button id="recipeBtn">레시피 추천</button>
+  </div>
+
+  <div id="recipeStatus" style="margin-top: 12px; color: #666; font-size: 14px;"></div>
+  <div id="recipeResult"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

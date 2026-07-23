@@ -1,0 +1,12 @@
+{
+  "name": "claude-api-pjt",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "better-sqlite3": "^13.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "sharp": "^0.35.3"
+  }
+}
