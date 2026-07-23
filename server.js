@@ -91,40 +91,50 @@ app.post('/api/recipes', async (req, res) => {
   }
 });
 
-app.get('/api/me', (req, res) => {
+app.get('/api/me', async (req, res) => {
   const userId = req.cookies[COOKIE_NAME];
-  const user = userId ? db.getUser(userId) : null;
 
-  if (!user) {
-    return res.status(404).json({ error: '프로필이 없습니다.' });
+  try {
+    const user = userId ? await db.getUser(userId) : null;
+    if (!user) {
+      return res.status(404).json({ error: '프로필이 없습니다.' });
+    }
+    res.json({ userId: user.id, nickname: user.nickname });
+  } catch (err) {
+    console.error('get user error:', err.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
   }
-  res.json({ userId: user.id, nickname: user.nickname });
 });
 
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
   const nickname = typeof req.body?.nickname === 'string' ? req.body.nickname.trim() : '';
 
   if (!nickname || nickname.length > 30) {
     return res.status(400).json({ error: '닉네임은 1~30자로 입력해주세요.' });
   }
 
-  const userId = crypto.randomUUID();
-  const user = db.createUser(userId, nickname);
+  try {
+    const userId = crypto.randomUUID();
+    const user = await db.createUser(userId, nickname);
 
-  res.setHeader(
-    'Set-Cookie',
-    `${COOKIE_NAME}=${encodeURIComponent(userId)}; HttpOnly; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`
-  );
-  res.json({ userId: user.id, nickname: user.nickname });
+    res.setHeader(
+      'Set-Cookie',
+      `${COOKIE_NAME}=${encodeURIComponent(userId)}; HttpOnly; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`
+    );
+    res.json({ userId: user.id, nickname: user.nickname });
+  } catch (err) {
+    console.error('create user error:', err.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+  }
 });
 
-function requireOwner(req, res) {
+async function requireOwner(req, res) {
   const sessionUserId = req.cookies[COOKIE_NAME];
   if (!sessionUserId || sessionUserId !== req.params.userId) {
     res.status(403).json({ error: '접근 권한이 없습니다.' });
     return null;
   }
-  const user = db.getUser(sessionUserId);
+  const user = await db.getUser(sessionUserId);
   if (!user) {
     res.status(404).json({ error: '프로필을 찾을 수 없습니다.' });
     return null;
@@ -132,45 +142,60 @@ function requireOwner(req, res) {
   return user;
 }
 
-app.post('/api/users/:userId/recipes', (req, res) => {
-  const user = requireOwner(req, res);
-  if (!user) return;
+app.post('/api/users/:userId/recipes', async (req, res) => {
+  try {
+    const user = await requireOwner(req, res);
+    if (!user) return;
 
-  const { name, usedIngredients, missingIngredients, steps, estimatedTimeMinutes } = req.body ?? {};
-  if (typeof name !== 'string' || !name.trim() || !Array.isArray(steps) || steps.length === 0) {
-    return res.status(400).json({ error: '레시피 데이터가 올바르지 않습니다.' });
+    const { name, usedIngredients, missingIngredients, steps, estimatedTimeMinutes } = req.body ?? {};
+    if (typeof name !== 'string' || !name.trim() || !Array.isArray(steps) || steps.length === 0) {
+      return res.status(400).json({ error: '레시피 데이터가 올바르지 않습니다.' });
+    }
+
+    const id = crypto.randomUUID();
+    const saved = await db.saveRecipe(id, user.id, {
+      name,
+      usedIngredients: Array.isArray(usedIngredients) ? usedIngredients : [],
+      missingIngredients: Array.isArray(missingIngredients) ? missingIngredients : [],
+      steps,
+      estimatedTimeMinutes: typeof estimatedTimeMinutes === 'number' ? estimatedTimeMinutes : null,
+    });
+
+    res.json(saved);
+  } catch (err) {
+    console.error('save recipe error:', err.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
   }
-
-  const id = crypto.randomUUID();
-  const saved = db.saveRecipe(id, user.id, {
-    name,
-    usedIngredients: Array.isArray(usedIngredients) ? usedIngredients : [],
-    missingIngredients: Array.isArray(missingIngredients) ? missingIngredients : [],
-    steps,
-    estimatedTimeMinutes: typeof estimatedTimeMinutes === 'number' ? estimatedTimeMinutes : null,
-  });
-
-  res.json(saved);
 });
 
-app.get('/api/users/:userId/recipes', (req, res) => {
-  const user = requireOwner(req, res);
-  if (!user) return;
+app.get('/api/users/:userId/recipes', async (req, res) => {
+  try {
+    const user = await requireOwner(req, res);
+    if (!user) return;
 
-  res.json({ recipes: db.listRecipes(user.id) });
+    res.json({ recipes: await db.listRecipes(user.id) });
+  } catch (err) {
+    console.error('list recipes error:', err.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+  }
 });
 
-app.delete('/api/users/:userId/recipes/:recipeId', (req, res) => {
-  const user = requireOwner(req, res);
-  if (!user) return;
+app.delete('/api/users/:userId/recipes/:recipeId', async (req, res) => {
+  try {
+    const user = await requireOwner(req, res);
+    if (!user) return;
 
-  const owner = db.getRecipeOwner(req.params.recipeId);
-  if (!owner || owner !== user.id) {
-    return res.status(404).json({ error: '레시피를 찾을 수 없습니다.' });
+    const owner = await db.getRecipeOwner(req.params.recipeId);
+    if (!owner || owner !== user.id) {
+      return res.status(404).json({ error: '레시피를 찾을 수 없습니다.' });
+    }
+
+    await db.deleteRecipe(req.params.recipeId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('delete recipe error:', err.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
   }
-
-  db.deleteRecipe(req.params.recipeId);
-  res.json({ success: true });
 });
 
 if (!process.env.VERCEL) {
