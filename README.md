@@ -12,7 +12,7 @@
 ## 기술 스택
 
 - **Backend**: Node.js, Express
-- **Database**: better-sqlite3
+- **Database**: Supabase (PostgreSQL)
 - **Image Processing**: sharp
 - **AI**: OpenRouter API
 
@@ -34,7 +34,11 @@ cp .env.example .env
 
 ```
 OPENROUTER_API_KEY=your_openrouter_api_key_here
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY`는 Supabase 대시보드 → Project Settings → API → Secret keys에서 확인할 수 있습니다. 서버에서만 사용되며 RLS를 우회하므로 절대 클라이언트에 노출되거나 커밋되면 안 됩니다.
 
 ### 3. 서버 실행
 
@@ -53,7 +57,7 @@ node server.js
 ├── src/
 │   ├── ingredientRecognizer.js  # 이미지 기반 재료 인식
 │   ├── recipeGenerator.js       # 레시피 생성
-│   └── db.js                    # SQLite 데이터베이스 처리
+│   └── db.js                    # Supabase 데이터베이스 처리 (fridge_user_tbl, fridge_recipes_tbl)
 ├── public/
 │   ├── index.html
 │   └── app.js
