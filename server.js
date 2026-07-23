@@ -1,10 +1,13 @@
 import express from 'express';
 import sharp from 'sharp';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { recognizeIngredients } from './src/ingredientRecognizer.js';
 import { generateRecipes } from './src/recipeGenerator.js';
 import * as db from './src/db.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -26,7 +29,7 @@ function parseCookies(header) {
 }
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   req.cookies = parseCookies(req.headers.cookie);
   next();
